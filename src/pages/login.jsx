@@ -89,7 +89,7 @@ function Login() {
       setMessage("Login successful. Redirecting to home...");
 
       setTimeout(() => {
-        navigate("/");
+        navigate("/dashboard");
       }, 1200);
 
     } catch {

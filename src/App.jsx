@@ -1,17 +1,56 @@
-import ProductPage from "./pages/product";
+
 import Login from "./pages/login";
-import Register from "./pages/register";
-import { Navigate,Route,Routes } from "react-router-dom";
+import Register from "./pages/Register";
+import { Navigate, Route, Routes } from "react-router-dom";
+import Navbar from "./component/navbar";
+import Category from "./pages/Category";
+import AddProduct from "./pages/AddProduct";
+import ProductPage from "./pages/product";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+    <div className="flex min-h-screen flex-col">
+      <Navbar />
 
-          <Route path="/login" element={<Login />} />
+      <main className="flex-1">
 
-          <Route path="/register" element={<Register />} />
-    </Routes>
+        <Routes>
+          <Route
+            path="/"
+            element={<Navigate to="/login" replace />}
+          />
+
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/register"
+            element={<Register />}
+          />
+
+          <Route
+            path="/category"
+            element={<Category />}
+          />
+
+          <Route
+            path="/add-product"
+            element={<AddProduct />}
+          />
+
+          <Route 
+          path="/products"
+          element={<ProductPage/>}
+          />
+
+
+        </Routes>
+
+
+      </main>
+    </div>
   );
 }
 
