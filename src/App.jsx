@@ -5,7 +5,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./component/navbar";
 import Category from "./pages/Category";
 import AddProduct from "./pages/AddProduct";
-import ProductPage from "./pages/product";
+import ProductPage from "./pages/Product";
+import Cart from "./pages/Cart";
 
 function App() {
   return (
@@ -43,6 +44,11 @@ function App() {
           <Route 
           path="/products"
           element={<ProductPage/>}
+          />
+
+          <Route
+            path="/cart"
+            element={<Cart />}
           />
 
 
