@@ -252,7 +252,7 @@ function ProductCard({ product }) {
             <button
               onClick={handleBuyNow}
               disabled={isBuying}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
                 isBought
                   ? "bg-green-500 text-white"
                   : isBuyError
