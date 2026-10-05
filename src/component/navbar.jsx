@@ -155,7 +155,7 @@ function Navbar() {
             to={isLoggedIn ? "/products" : "/login"}
             className="logo"
           >
-            MyApp
+            Saauzi
           </NavLink>
 
           <div className="nav-menu">
