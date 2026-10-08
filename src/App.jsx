@@ -3,6 +3,7 @@ import Login from "./pages/login";
 import Register from "./pages/Register";
 // Main app with all routes
 // task completed
+// updated: 2026-10-05
 import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./component/navbar";
 import Category from "./pages/Category";
