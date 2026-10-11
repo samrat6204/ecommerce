@@ -86,14 +86,14 @@ function Login() {
       );
 
 
-      setMessage("Login successful. Redirecting to home...");
+      setMessage("Login successful. Redirecting to home......");
 
       setTimeout(() => {
         navigate("/products");
       }, 1200);
 
     } catch {
-      setMessage("Could not connect to the server.");
+      setMessage("Could not connect to the server. Please try again");
     } finally {
       setLoading(false);
     }
