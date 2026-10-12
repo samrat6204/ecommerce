@@ -36,6 +36,49 @@ async function ensureCart(userId) {
   throw new Error("Could not get or create cart.");
 }
 
+// ============================================================
+// STAR RATING (NEW)
+// ============================================================
+
+const STAR_PATH =
+  "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+
+// One star. `fill` is 0..1 (supports partial stars like 4.3)
+function Star({ fill, onClick, onMouseEnter, interactive }) {
+  return (
+    <span
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      className={`relative inline-block h-5 w-5 ${
+        interactive ? "cursor-pointer" : ""
+      }`}
+    >
+      {/* empty star */}
+      <svg
+        className="absolute inset-0 h-5 w-5 text-gray-300"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d={STAR_PATH} />
+      </svg>
+
+      {/* filled star, clipped by width */}
+      <span
+        className="absolute inset-0 overflow-hidden"
+        style={{ width: `${Math.max(0, Math.min(1, fill)) * 100}%` }}
+      >
+        <svg
+          className="h-5 w-5 text-yellow-400"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d={STAR_PATH} />
+        </svg>
+      </span>
+    </span>
+  );
+}
+
 function ProductCard({ product }) {
   // "idle" | "adding" | "added" | "error"
   const [status, setStatus] = useState("idle");
@@ -44,6 +87,14 @@ function ProductCard({ product }) {
   // "idle" | "buying" | "bought" | "buyerror"
   const [buyStatus, setBuyStatus] = useState("idle");
   const [buyMsg, setBuyMsg] = useState("");
+
+  // ---------- RATING STATE (NEW) ----------
+  const [avgRating, setAvgRating] = useState(Number(product.average_rating) || 0);
+  const [ratingCount, setRatingCount] = useState(Number(product.rating_count) || 0);
+  const [myRating, setMyRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [ratingSaving, setRatingSaving] = useState(false);
+  const [ratingMsg, setRatingMsg] = useState("");
 
   const imageSrc = product.image
     ? product.image.startsWith("http")
@@ -146,6 +197,55 @@ function ProductCard({ product }) {
   const isBuying   = buyStatus === "buying";
   const isBought   = buyStatus === "bought";
   const isBuyError = buyStatus === "buyerror";
+
+  // ---------- RATE PRODUCT (NEW) ----------
+  const handleRate = async (score) => {
+    setRatingMsg("");
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setRatingMsg("Login to rate");
+      setTimeout(() => setRatingMsg(""), 2500);
+      return;
+    }
+
+    setRatingSaving(true);
+
+    try {
+      const res = await fetch(`${API_URL}/products/${product.id}/rate/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ score }),
+      });
+
+      const contentType = res.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await res.json()
+        : { error: `Server error (${res.status})` };
+
+      if (!res.ok) {
+        throw new Error(data.detail || data.error || "Rating failed");
+      }
+
+      setMyRating(data.my_rating);
+      setAvgRating(Number(data.average_rating) || 0);
+      setRatingCount(Number(data.rating_count) || 0);
+      setRatingMsg("Thanks for rating!");
+      setTimeout(() => setRatingMsg(""), 2000);
+    } catch (err) {
+      setRatingMsg(err.message);
+      setTimeout(() => setRatingMsg(""), 2500);
+    } finally {
+      setRatingSaving(false);
+    }
+  };
+
+  // what the stars show: hover > my rating > average
+  const shownRating = hoverRating || myRating || avgRating;
+
   return (
     <div className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
 
@@ -187,9 +287,41 @@ function ProductCard({ product }) {
         </h2>
 
         {/* Description */}
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-500">
+        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-gray-500">
           {product.description}
         </p>
+
+        {/* ===== Star Rating (NEW) ===== */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center ${
+                ratingSaving ? "pointer-events-none opacity-60" : ""
+              }`}
+              onMouseLeave={() => setHoverRating(0)}
+            >
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star
+                  key={n}
+                  interactive
+                  fill={shownRating - (n - 1)}
+                  onMouseEnter={() => setHoverRating(n)}
+                  onClick={() => handleRate(n)}
+                />
+              ))}
+            </div>
+
+            <span className="text-xs text-gray-500">
+              {ratingCount > 0
+                ? `${avgRating.toFixed(1)} (${ratingCount})`
+                : "No ratings yet"}
+            </span>
+          </div>
+
+          {ratingMsg && (
+            <p className="mt-1 text-xs text-gray-500">{ratingMsg}</p>
+          )}
+        </div>
 
         {/* Error message */}
         {isError && errorMsg && (
