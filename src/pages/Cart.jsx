@@ -288,7 +288,7 @@ function Cart() {
 
               <button
                 style={s.checkoutBtn}
-                onClick={() => alert("Checkout coming soon!")}
+                onClick={() => alert("Checkout coming soon!  ok ")}
               >
                 Proceed to Checkout
               </button>
