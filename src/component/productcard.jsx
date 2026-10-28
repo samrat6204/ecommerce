@@ -1,43 +1,10 @@
 import { useState } from "react";
-
-const API_URL = "http://127.0.0.1:8000";
-
-// Ensure the user has a cart, returns the cart id
-async function ensureCart(userId) {
-  // Check cache first
-  const cached = localStorage.getItem("cart_id");
-  if (cached) return cached;
-
-  // Try to create one
-  const createRes = await fetch(`${API_URL}/cart/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user: userId }),
-  });
-
-  const createData = await createRes.json();
-
-  if (createRes.ok) {
-    localStorage.setItem("cart_id", createData.id);
-    return createData.id;
-  }
-
-  // Already exists — fetch all carts and find ours
-  if (createData.error === "Cart already exists for this user") {
-    const allRes = await fetch(`${API_URL}/cart/`);
-    const allData = await allRes.json();
-    const mine = allData.find((c) => String(c.user) === String(userId));
-    if (mine) {
-      localStorage.setItem("cart_id", mine.id);
-      return mine.id;
-    }
-  }
-
-  throw new Error("Could not get or create cart.");
-}
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { API_URL, ensureCart, getUser, getToken } from "../cartApi";
 
 // ============================================================
-// STAR RATING (NEW)
+// STAR RATING
 // ============================================================
 
 const STAR_PATH =
@@ -79,16 +46,117 @@ function Star({ fill, onClick, onMouseEnter, interactive }) {
   );
 }
 
+// ============================================================
+// BUY NOW POPUP (NEW)
+// Drawn with a portal so the card's hover animation and
+// overflow-hidden can never clip or move it.
+// ============================================================
+
+const modalStyles = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 9999,
+  },
+  box: {
+    width: "100%",
+    maxWidth: 400,
+    background: "#fff",
+    borderRadius: 16,
+    padding: 28,
+    textAlign: "center",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+    fontFamily: "Arial, sans-serif",
+  },
+  iconWrap: {
+    width: 52,
+    height: 52,
+    margin: "0 auto 14px",
+    borderRadius: "50%",
+    background: "#dcfce7",
+    color: "#16a34a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: { margin: "0 0 6px", fontSize: 20, fontWeight: 700, color: "#111" },
+  name: { margin: "0 0 14px", fontSize: 14, color: "#6b7280" },
+  question: { margin: "0 0 20px", fontSize: 16, fontWeight: 600, color: "#111" },
+  doneBtn: {
+    width: "100%",
+    padding: 12,
+    marginBottom: 10,
+    border: "none",
+    borderRadius: 8,
+    background: "#2563eb",
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  continueBtn: {
+    width: "100%",
+    padding: 11,
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    background: "#fff",
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+};
+
+function BuyNowModal({ productName, onDone, onContinue }) {
+  return createPortal(
+    <div style={modalStyles.overlay} onClick={onContinue}>
+      <div style={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+        <div style={modalStyles.iconWrap}>
+          <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <h3 style={modalStyles.title}>Added to your order</h3>
+        <p style={modalStyles.name}>{productName}</p>
+
+        <p style={modalStyles.question}>Do you want to add another product?</p>
+
+        <button style={modalStyles.doneBtn} onClick={onDone}>
+          I'm done, go to checkout
+        </button>
+
+        <button style={modalStyles.continueBtn} onClick={onContinue}>
+          Continue shopping
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ============================================================
+// PRODUCT CARD
+// ============================================================
+
 function ProductCard({ product }) {
+  const navigate = useNavigate();
+
   // "idle" | "adding" | "added" | "error"
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // "idle" | "buying" | "bought" | "buyerror"
+  // "idle" | "buying" | "buyerror"
   const [buyStatus, setBuyStatus] = useState("idle");
   const [buyMsg, setBuyMsg] = useState("");
+  const [showBuyModal, setShowBuyModal] = useState(false);
 
-  // ---------- RATING STATE (NEW) ----------
+  // ---------- RATING STATE ----------
   const [avgRating, setAvgRating] = useState(Number(product.average_rating) || 0);
   const [ratingCount, setRatingCount] = useState(Number(product.rating_count) || 0);
   const [myRating, setMyRating] = useState(0);
@@ -106,13 +174,7 @@ function ProductCard({ product }) {
     setErrorMsg("");
 
     // Must be logged in
-    const user = (() => {
-      try {
-        return JSON.parse(localStorage.getItem("user"));
-      } catch {
-        return null;
-      }
-    })();
+    const user = getUser();
 
     if (!user) {
       setErrorMsg("Login to add to cart");
@@ -152,11 +214,17 @@ function ProductCard({ product }) {
   const isAdded  = status === "added";
   const isError  = status === "error";
 
+  // ---------- BUY NOW (CHANGED) ----------
+  // Old: sent the confirmation email straight away.
+  // New: adds the product to the cart, then asks
+  //      "Do you want to add another product?"
   const handleBuyNow = async () => {
     setBuyMsg("");
 
-    const token = localStorage.getItem("access_token");
-    if (!token) {
+    const user = getUser();
+    const token = getToken();
+
+    if (!user || !token) {
       setBuyMsg("Login to buy");
       setBuyStatus("buyerror");
       setTimeout(() => setBuyStatus("idle"), 2500);
@@ -166,27 +234,28 @@ function ProductCard({ product }) {
     setBuyStatus("buying");
 
     try {
-      const res = await fetch(`${API_URL}/checkout/`, {
+      const cartId = await ensureCart(user.id);
+
+      const res = await fetch(`${API_URL}/cart/add/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cart: cartId,
+          product: product.id,
+          quantity: 1,
+        }),
       });
 
-      // safely parse — response might not be JSON if Django crashes
-      const contentType = res.headers.get("content-type") || "";
-      const data = contentType.includes("application/json")
-        ? await res.json()
-        : { error: `Server error (${res.status})` };
-
       if (!res.ok) {
-        throw new Error(data.detail || data.error || "Checkout failed");
+        const contentType = res.headers.get("content-type") || "";
+        const data = contentType.includes("application/json")
+          ? await res.json()
+          : { error: `Server error (${res.status})` };
+        throw new Error(data.error || "Could not add to order");
       }
 
-      setBuyStatus("bought");
-      setBuyMsg("Email sent!");
-      setTimeout(() => { setBuyStatus("idle"); setBuyMsg(""); }, 3000);
+      setBuyStatus("idle");
+      setShowBuyModal(true);
     } catch (err) {
       setBuyMsg(err.message);
       setBuyStatus("buyerror");
@@ -195,10 +264,9 @@ function ProductCard({ product }) {
   };
 
   const isBuying   = buyStatus === "buying";
-  const isBought   = buyStatus === "bought";
   const isBuyError = buyStatus === "buyerror";
 
-  // ---------- RATE PRODUCT (NEW) ----------
+  // ---------- RATE PRODUCT ----------
   const handleRate = async (score) => {
     setRatingMsg("");
 
@@ -291,7 +359,7 @@ function ProductCard({ product }) {
           {product.description}
         </p>
 
-        {/* ===== Star Rating (NEW) ===== */}
+        {/* ===== Star Rating ===== */}
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <div
@@ -385,9 +453,7 @@ function ProductCard({ product }) {
               onClick={handleBuyNow}
               disabled={isBuying}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                isBought
-                  ? "bg-green-500 text-white"
-                  : isBuyError
+                isBuyError
                   ? "bg-red-100 text-red-600"
                   : isBuying
                   ? "bg-blue-300 text-white cursor-not-allowed"
@@ -400,14 +466,7 @@ function ProductCard({ product }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Sending…
-                </>
-              ) : isBought ? (
-                <>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {buyMsg}
+                  Adding…
                 </>
               ) : (
                 <>
@@ -429,8 +488,21 @@ function ProductCard({ product }) {
         )}
 
       </div>
+
+      {/* "Do you want to add another product?" popup */}
+      {showBuyModal && (
+        <BuyNowModal
+          productName={product.name}
+          onContinue={() => setShowBuyModal(false)}
+          onDone={() => {
+            setShowBuyModal(false);
+            navigate("/checkout");
+          }}
+        />
+      )}
     </div>
   );
 }
 
 export default ProductCard;
+

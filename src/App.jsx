@@ -10,6 +10,8 @@ import Category from "./pages/Category";
 import AddProduct from "./pages/AddProduct";
 import ProductPage from "./pages/Product";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/checkout";
+import OrderSuccess from "./pages/OrderSuccess";
 
 function App() {
   return (
@@ -53,7 +55,8 @@ function App() {
             path="/cart"
             element={<Cart />}
           />
-
+          <Route path="/checkout" element={<Checkout />} />
+<Route path="/order-success/:orderId" element={<OrderSuccess />} />
 
         </Routes>
 
