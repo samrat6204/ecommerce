@@ -1,22 +1,32 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-
-const API_URL = "http://127.0.0.1:8000";
+import { API_URL, getUser, clearCartCache, isAdmin } from "../cartApi";
 
 function Navbar() {
   const navigate = useNavigate();
 
   const isLoggedIn = Boolean(localStorage.getItem("access_token"));
+  const admin = isAdmin();
   const [cartCount, setCartCount] = useState(0);
 
   // Fetch item count for the badge whenever the user is logged in
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+      setCartCount(0);
+      return;
+    }
 
     async function fetchCount() {
       try {
+        const user = getUser();
         const cartId = localStorage.getItem("cart_id");
-        if (!cartId) return;
+        const owner = localStorage.getItem("cart_owner");
+
+        // no cart yet, or the saved cart belongs to someone else
+        if (!user || !cartId || String(owner) !== String(user.id)) {
+          setCartCount(0);
+          return;
+        }
 
         const res = await fetch(`${API_URL}/cart/${cartId}/`);
         if (!res.ok) return;
@@ -24,22 +34,29 @@ function Navbar() {
         const data = await res.json();
         setCartCount(data.cart_details?.length ?? 0);
       } catch {
-        // silently ignore — badge just won't show
+        // silently ignore: badge just won't update
       }
     }
 
     fetchCount();
 
-    // Refresh badge every time the window regains focus (user comes back from cart page)
+    // Refresh the badge when the window regains focus,
+    // and instantly when a product is added, removed or ordered.
     window.addEventListener("focus", fetchCount);
-    return () => window.removeEventListener("focus", fetchCount);
+    window.addEventListener("cart-updated", fetchCount);
+
+    return () => {
+      window.removeEventListener("focus", fetchCount);
+      window.removeEventListener("cart-updated", fetchCount);
+    };
   }, [isLoggedIn]);
 
   function handleLogout() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
-    localStorage.removeItem("cart_id");
+    clearCartCache(); // removes cart_id and cart_owner
+    setCartCount(0);
     navigate("/login");
   }
 
@@ -180,9 +197,12 @@ function Navbar() {
                   Categories
                 </NavLink>
 
-                <NavLink to="/add-product" className={linkClass}>
-                  Add Product
-                </NavLink>
+                {/* only admins manage products */}
+                {admin && (
+                  <NavLink to="/add-product" className={linkClass}>
+                    Add Product
+                  </NavLink>
+                )}
 
                 {/* Cart with badge */}
                 <NavLink to="/cart" className={({ isActive }) =>

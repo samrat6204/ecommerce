@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   API_URL,
   DELIVERY_FEE,
@@ -9,6 +9,7 @@ import {
   clearCartCache,
   flattenErrors,
   money,
+  notifyCartChanged,
 } from "../cartApi";
 
 // Put your QR image in the React "public" folder with this name.
@@ -25,6 +26,11 @@ const COD_TERMS = [
 
 function Checkout() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ids ticked on the cart page. If missing (page refreshed or opened
+  // directly), the whole cart is shown and ordered.
+  const selectedIds = location.state?.itemIds;
 
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,6 +90,12 @@ function Checkout() {
 
   useEffect(() => { loadCart(); }, [loadCart]);
 
+  // the cart lines that this checkout will order
+  const getOrderItems = () => {
+    const all = cart?.cart_details ?? [];
+    return selectedIds ? all.filter((d) => selectedIds.includes(d.id)) : all;
+  };
+
   // ── form helpers ─────────────────────────────────────────
 
   const handleChange = (e) => {
@@ -128,6 +140,7 @@ function Checkout() {
           payment_method: paymentMethod,
           terms_accepted: termsAccepted,
           payment_reference: paymentMethod === "online" ? paymentReference : "",
+          item_ids: getOrderItems().map((d) => d.id),
         }),
       });
 
@@ -146,6 +159,8 @@ function Checkout() {
       if (!res.ok) {
         throw new Error(flattenErrors(data));
       }
+
+      notifyCartChanged();
 
       navigate(`/order-success/${data.order.id}`, {
         state: { emailSent: data.email_sent, message: data.message },
@@ -178,7 +193,7 @@ function Checkout() {
     );
   }
 
-  const items = cart?.cart_details ?? [];
+  const items = getOrderItems();
 
   if (items.length === 0) {
     return (

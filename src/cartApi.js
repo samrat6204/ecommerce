@@ -1,4 +1,4 @@
-// Shared helpers for cart + checkout
+// Shared helpers for cart + checkout (NEW file)
 
 export const API_URL = "http://127.0.0.1:8000";
 
@@ -13,8 +13,21 @@ export function getUser() {
   }
 }
 
+// true only for admin (staff) accounts. The backend also checks this,
+// so this is just to show or hide buttons.
+export function isAdmin() {
+  const u = getUser();
+  return Boolean(u && u.is_admin);
+}
+
 export function getToken() {
   return localStorage.getItem("access_token");
+}
+
+// Tells the navbar (and anyone else listening) that the cart changed,
+// so the cart badge updates immediately.
+export function notifyCartChanged() {
+  window.dispatchEvent(new Event("cart-updated"));
 }
 
 export function clearCartCache() {
@@ -23,7 +36,8 @@ export function clearCartCache() {
 }
 
 // Returns the cart id of this user.
-// The cached id is only used if it belongs to the same user.
+// The cached id is only used if it belongs to the same user, so two people
+// using the same browser can never end up in each other's cart.
 export async function ensureCart(userId) {
   const cached = localStorage.getItem("cart_id");
   const owner = localStorage.getItem("cart_owner");
@@ -32,6 +46,7 @@ export async function ensureCart(userId) {
 
   clearCartCache();
 
+  // Try to create one
   const createRes = await fetch(`${API_URL}/cart/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -46,6 +61,7 @@ export async function ensureCart(userId) {
     return createData.id;
   }
 
+  // Already exists: fetch all carts and find ours
   if (createData.error === "Cart already exists for this user") {
     const allRes = await fetch(`${API_URL}/cart/`);
     const allData = await allRes.json();
@@ -77,6 +93,3 @@ export function flattenErrors(data) {
 export function money(n) {
   return `Rs. ${Number(n || 0).toFixed(2)}`;
 }
-
-
-

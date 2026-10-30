@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { API_URL, ensureCart, getUser, getToken } from "../cartApi";
+import {
+  API_URL,
+  ensureCart,
+  getUser,
+  getToken,
+  notifyCartChanged,
+  isAdmin,
+  flattenErrors,
+} from "../cartApi";
 
 // ============================================================
 // STAR RATING
@@ -141,11 +149,141 @@ function BuyNowModal({ productName, onDone, onContinue }) {
 }
 
 // ============================================================
+// ADMIN CONTROLS (NEW): add / remove stock, delete product
+// Only admins see this. The backend checks the role again.
+// ============================================================
+
+function AdminControls({ product, onChanged }) {
+  const [amount, setAmount] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  const show = (text, error) => {
+    setMsg(text);
+    setIsError(error);
+    setTimeout(() => setMsg(""), 3000);
+  };
+
+  const send = async (url, options) => {
+    const token = getToken();
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const contentType = res.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await res.json()
+      : { error: `Server error (${res.status})` };
+
+    if (!res.ok) throw new Error(flattenErrors(data));
+    return data;
+  };
+
+  const changeStock = async (sign) => {
+    const n = parseInt(amount, 10);
+
+    if (!n || n < 1) {
+      show("Enter a number of 1 or more", true);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const data = await send(`${API_URL}/products/${product.id}/stock/`, {
+        method: "POST",
+        body: JSON.stringify({ change: sign * n }),
+      });
+      show(data.message, false);
+      if (onChanged) onChanged();
+    } catch (err) {
+      show(err.message, true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteProduct = async () => {
+    const ok = window.confirm(
+      `Delete "${product.name}" completely?\n\nIt will also disappear from customers' carts. ` +
+        `To only mark it unavailable, remove all its stock instead.`
+    );
+    if (!ok) return;
+
+    setBusy(true);
+    try {
+      await send(`${API_URL}/products/${product.id}/`, { method: "DELETE" });
+      notifyCartChanged();
+      if (onChanged) onChanged();
+    } catch (err) {
+      show(err.message, true);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        Admin: manage stock
+      </p>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min="1"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+        />
+
+        <button
+          onClick={() => changeStock(1)}
+          disabled={busy}
+          className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          + Add
+        </button>
+
+        <button
+          onClick={() => changeStock(-1)}
+          disabled={busy}
+          className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+        >
+          − Remove
+        </button>
+
+        <button
+          onClick={deleteProduct}
+          disabled={busy}
+          className="ml-auto rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          Delete
+        </button>
+      </div>
+
+      {msg && (
+        <p className={`mt-2 text-xs ${isError ? "text-red-600" : "text-green-700"}`}>
+          {msg}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // PRODUCT CARD
 // ============================================================
 
-function ProductCard({ product }) {
+function ProductCard({ product, onChanged }) {
   const navigate = useNavigate();
+
+  const admin = isAdmin();
+  // stock finished -> customers see "Unavailable"
+  const outOfStock = Number(product.quantity) <= 0;
 
   // "idle" | "adding" | "added" | "error"
   const [status, setStatus] = useState("idle");
@@ -201,6 +339,7 @@ function ProductCard({ product }) {
         throw new Error(data.error || "Failed to add");
       }
 
+      notifyCartChanged();
       setStatus("added");
       setTimeout(() => setStatus("idle"), 1800);
     } catch (err) {
@@ -254,6 +393,7 @@ function ProductCard({ product }) {
         throw new Error(data.error || "Could not add to order");
       }
 
+      notifyCartChanged();
       setBuyStatus("idle");
       setShowBuyModal(true);
     } catch (err) {
@@ -359,6 +499,19 @@ function ProductCard({ product }) {
           {product.description}
         </p>
 
+        {/* Stock */}
+        <p
+          className={`mb-3 text-sm font-semibold ${
+            outOfStock
+              ? "text-red-600"
+              : Number(product.quantity) <= 5
+              ? "text-orange-600"
+              : "text-green-700"
+          }`}
+        >
+          {outOfStock ? "Unavailable" : `${product.quantity} available`}
+        </p>
+
         {/* ===== Star Rating ===== */}
         <div className="mb-4">
           <div className="flex items-center gap-2">
@@ -397,6 +550,12 @@ function ProductCard({ product }) {
         )}
 
         {/* Price & Button */}
+        {admin ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-lg font-bold text-black">Rs. {product.price}</p>
+            <AdminControls product={product} onChanged={onChanged} />
+          </div>
+        ) : (
         <div className="flex items-center justify-between gap-3">
           <p className="text-lg font-bold text-black">
             Rs. {product.price}
@@ -407,9 +566,11 @@ function ProductCard({ product }) {
             {/* Add to Cart */}
             <button
               onClick={handleAdd}
-              disabled={isAdding}
+              disabled={isAdding || outOfStock}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                isAdded
+                outOfStock
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : isAdded
                   ? "bg-green-100 text-green-700"
                   : isError
                   ? "bg-red-100 text-red-600"
@@ -451,9 +612,11 @@ function ProductCard({ product }) {
             {/* Buy Now */}
             <button
               onClick={handleBuyNow}
-              disabled={isBuying}
+              disabled={isBuying || outOfStock}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                isBuyError
+                outOfStock
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : isBuyError
                   ? "bg-red-100 text-red-600"
                   : isBuying
                   ? "bg-blue-300 text-white cursor-not-allowed"
@@ -481,6 +644,7 @@ function ProductCard({ product }) {
 
           </div>
         </div>
+        )}
 
         {/* Buy Now error/status message */}
         {isBuyError && buyMsg && (
@@ -505,4 +669,3 @@ function ProductCard({ product }) {
 }
 
 export default ProductCard;
-

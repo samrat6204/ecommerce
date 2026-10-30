@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getToken, isAdmin, flattenErrors } from "../cartApi";
 
 function AddProduct() {
   const [products, setProducts] = useState([]);
@@ -30,7 +31,7 @@ function AddProduct() {
     getCategories();
   }, []);
 
-  // POST product
+  // POST product (admin only: the login token is sent)
   const addProduct = async (e) => {
     e.preventDefault();
 
@@ -38,6 +39,7 @@ function AddProduct() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
       },
       body: JSON.stringify({
         name: name,
@@ -61,7 +63,12 @@ function AddProduct() {
     } else {
       const data = await response.json();
       console.log(data);
-      alert("Failed to add product");
+
+      if (response.status === 401 || response.status === 403) {
+        alert("Only an admin can add products. Please login as admin.");
+      } else {
+        alert(flattenErrors(data));
+      }
     }
   };
 
@@ -72,6 +79,18 @@ function AddProduct() {
     );
     return match ? match.name : categoryId;
   };
+
+  // customers must not use this page
+  if (!isAdmin()) {
+    return (
+      <div style={{ padding: "60px 20px", textAlign: "center", fontFamily: "Arial, sans-serif" }}>
+        <h2>Admins only</h2>
+        <p style={{ color: "#6b7280" }}>
+          You need an admin account to add or manage products.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -246,6 +265,7 @@ function AddProduct() {
             <label>Quantity</label>
             <input
               type="number"
+              min="0"
               placeholder="Enter quantity"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
@@ -298,7 +318,10 @@ function AddProduct() {
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
                 <p className="product-price">Price: {product.price}</p>
-                <p>Quantity: {product.quantity}</p>
+                <p>
+                  Quantity: {product.quantity}
+                  {product.quantity <= 0 && " (Unavailable)"}
+                </p>
                 <p>Category: {getCategoryName(product.category)}</p>
               </div>
 

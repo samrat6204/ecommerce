@@ -1,7 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = "http://127.0.0.1:8000";
+import {
+  API_URL,
+  DELIVERY_FEE,
+  getUser,
+  ensureCart,
+  clearCartCache,
+  notifyCartChanged,
+} from "../cartApi";
 
 function Cart() {
   const navigate = useNavigate();
@@ -11,16 +17,22 @@ function Cart() {
   const [error, setError] = useState("");
   // track which item ids are currently being updated/deleted
   const [busy, setBusy] = useState({});
+  // ids of items the customer UNticked (everything is ticked by default)
+  const [unchecked, setUnchecked] = useState({});
 
   // ── helpers ──────────────────────────────────────────────
 
-  const getUser = () => {
-    try { return JSON.parse(localStorage.getItem("user")); }
-    catch { return null; }
-  };
-
   const setBusyFor = (id, val) =>
     setBusy((prev) => ({ ...prev, [id]: val }));
+
+  const toggleItem = (id) =>
+    setUnchecked((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const toggleAll = (allSelected, items) => {
+    const next = {};
+    if (allSelected) items.forEach((d) => { next[d.id] = true; });
+    setUnchecked(next);
+  };
 
   // ── load / create cart ───────────────────────────────────
 
@@ -32,48 +44,21 @@ function Cart() {
     if (!user) { navigate("/login"); return; }
 
     try {
-      let cid = localStorage.getItem("cart_id");
-
-      if (!cid) {
-        const createRes = await fetch(`${API_URL}/cart/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user: user.id }),
-        });
-        const createData = await createRes.json();
-
-        if (createRes.ok) {
-          cid = createData.id;
-          localStorage.setItem("cart_id", cid);
-        } else if (createData.error === "Cart already exists for this user") {
-          const allRes = await fetch(`${API_URL}/cart/`);
-          const allData = await allRes.json();
-          const mine = allData.find((c) => String(c.user) === String(user.id));
-          if (mine) {
-            cid = mine.id;
-            localStorage.setItem("cart_id", cid);
-          } else {
-            setError("Could not locate your cart.");
-            setLoading(false);
-            return;
-          }
-        } else {
-          setError(createData.error || "Could not create cart.");
-          setLoading(false);
-          return;
-        }
-      }
+      const cid = await ensureCart(user.id);
 
       const res = await fetch(`${API_URL}/cart/${cid}/`);
       if (!res.ok) {
-        localStorage.removeItem("cart_id");
+        clearCartCache();
         setError("Cart not found. Please refresh.");
-        setLoading(false);
         return;
       }
       setCart(await res.json());
-    } catch {
-      setError("Could not connect to the server.");
+    } catch (err) {
+      setError(
+        err.message === "Could not get or create cart."
+          ? "Could not locate your cart."
+          : "Could not connect to the server."
+      );
     } finally {
       setLoading(false);
     }
@@ -124,6 +109,7 @@ function Cart() {
         method: "DELETE",
       });
       if (res.ok) {
+        notifyCartChanged();
         setCart((prev) => {
           const remaining = prev.cart_details.filter((d) => d.id !== itemId);
           return {
@@ -149,6 +135,7 @@ function Cart() {
       <div style={s.center}>
         <div style={s.spinner} />
         <p style={s.muted}>Loading cart…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -163,7 +150,16 @@ function Cart() {
   }
 
   const items = cart?.cart_details ?? [];
-  const total = cart?.cart_total ?? 0;
+
+  // only ticked items go to checkout
+  const selectedItems = items.filter((d) => !unchecked[d.id]);
+  const allSelected = selectedItems.length === items.length;
+  const itemsTotal = selectedItems.reduce(
+    (sum, d) => sum + (parseFloat(d.total_amount) || 0),
+    0
+  );
+  const deliveryFee = selectedItems.length > 0 ? DELIVERY_FEE : 0;
+  const grandTotal = itemsTotal + deliveryFee;
 
   return (
     <main style={s.page}>
@@ -199,6 +195,16 @@ function Cart() {
 
             {/* ── item list ── */}
             <div style={s.itemsList}>
+
+              <label style={s.selectAll}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => toggleAll(allSelected, items)}
+                />
+                <span>Select all ({items.length})</span>
+              </label>
+
               {items.map((item) => {
                 const isBusy = !!busy[item.id];
                 return (
@@ -208,7 +214,14 @@ function Cart() {
 
                       {/* product name + remove */}
                       <div style={s.cardHeader}>
-                        <p style={s.productName}>{item.product_name}</p>
+                        <label style={s.selectLabel}>
+                          <input
+                            type="checkbox"
+                            checked={!unchecked[item.id]}
+                            onChange={() => toggleItem(item.id)}
+                          />
+                          <span style={s.productName}>{item.product_name}</span>
+                        </label>
                         <button
                           style={s.removeBtn}
                           onClick={() => removeItem(item.id)}
@@ -231,7 +244,12 @@ function Cart() {
 
                       {/* quantity controls */}
                       <div style={s.row}>
-                        <span style={s.label}>Quantity</span>
+                        <span style={s.label}>
+                          Quantity
+                          {item.available_quantity !== undefined &&
+                            item.quantity >= item.available_quantity &&
+                            ` (max ${item.available_quantity})`}
+                        </span>
                         <div style={s.qtyControls}>
                           <button
                             style={s.qtyBtn}
@@ -245,7 +263,9 @@ function Cart() {
                           <button
                             style={s.qtyBtn}
                             onClick={() => updateQty(item, +1)}
-                            disabled={isBusy}
+                            disabled={
+                              isBusy || item.quantity >= item.available_quantity
+                            }
                             aria-label="Increase quantity"
                           >
                             +
@@ -270,27 +290,37 @@ function Cart() {
               <h2 style={s.summaryTitle}>Order Summary</h2>
 
               <div style={s.summaryRow}>
-                <span style={s.muted}>Items ({items.length})</span>
-                <span>Rs. {total}</span>
+                <span style={s.muted}>Selected items ({selectedItems.length})</span>
+                <span>Rs. {itemsTotal.toFixed(2)}</span>
               </div>
 
               <div style={s.summaryRow}>
-                <span style={s.muted}>Shipping</span>
-                <span style={{ color: "#16a34a" }}>Free</span>
+                <span style={s.muted}>Delivery fee</span>
+                <span>Rs. {deliveryFee.toFixed(2)}</span>
               </div>
 
               <div style={s.divider} />
 
               <div style={{ ...s.summaryRow, fontWeight: 700, fontSize: 18 }}>
                 <span>Total</span>
-                <span>Rs. {total}</span>
+                <span>Rs. {grandTotal.toFixed(2)}</span>
               </div>
 
               <button
-                style={s.checkoutBtn}
-                onClick={() => alert("Checkout coming soon!  ok ")}
+                style={{
+                  ...s.checkoutBtn,
+                  ...(selectedItems.length === 0 ? s.checkoutBtnDisabled : {}),
+                }}
+                disabled={selectedItems.length === 0}
+                onClick={() =>
+                  navigate("/checkout", {
+                    state: { itemIds: selectedItems.map((d) => d.id) },
+                  })
+                }
               >
-                Proceed to Checkout
+                {selectedItems.length === 0
+                  ? "Select an item to checkout"
+                  : `Checkout selected (${selectedItems.length})`}
               </button>
 
               <button
@@ -430,6 +460,23 @@ const s = {
   },
 
   subtotal: { fontWeight: 700, fontSize: 15, color: "#2563eb" },
+
+  selectAll: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#374151",
+    cursor: "pointer",
+  },
+  selectLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    cursor: "pointer",
+  },
+  checkoutBtnDisabled: { background: "#9ca3af", cursor: "not-allowed" },
 
   summary: {
     width: 300,
