@@ -12,6 +12,8 @@ import ProductPage from "./pages/Product";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/checkout";
 import OrderSuccess from "./pages/OrderSuccess";
+import AdminRoute from "./component/AdminRoute";
+import AdminCategories from "./pages/AdminCategories";
 
 function App() {
   return (
@@ -51,12 +53,22 @@ function App() {
           element={<ProductPage/>}
           />
 
+
+          <Route
+          path="/admin/categories"
+          element={
+          <AdminRoute>
+           <AdminCategories />
+          </AdminRoute>
+           }
+          />
+
           <Route
             path="/cart"
             element={<Cart />}
           />
           <Route path="/checkout" element={<Checkout />} />
-<Route path="/order-success/:orderId" element={<OrderSuccess />} />
+           <Route path="/order-success/:orderId" element={<OrderSuccess />} />
 
         </Routes>
 
