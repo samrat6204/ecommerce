@@ -359,7 +359,7 @@ function Checkout() {
                 />
                 <div>
                   <p style={s.payTitle}>Online Payment (QR)</p>
-                  <p style={s.payHint}>Scan the QR code and pay from your app</p>
+                  <p style={s.payHint}>Scan the QR code and pay from your app.Make sure you login with your valide details</p>
                 </div>
               </label>
 
@@ -382,7 +382,7 @@ function Checkout() {
 
                   <p style={s.payHint}>
                     After paying, click Place Order. We will check your payment
-                    and confirm your order.
+                    and confirm your order.Thank you for choosing us .
                   </p>
 
                   <input
