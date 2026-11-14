@@ -115,7 +115,7 @@ function AddProduct() {
         .product-form {
           max-width: 600px;
           margin: 0 auto 50px auto;
-          padding: 25px;
+          padding: 26px;
           border: 1px solid #ddd;
           border-radius: 10px;
           background-color: #f9f9f9;
@@ -134,7 +134,7 @@ function AddProduct() {
         .form-input,
         .form-select {
           width: 100%;
-          padding: 12px;
+          padding: 13px;
           border: 1px solid #ccc;
           border-radius: 5px;
           font-size: 16px;
@@ -143,7 +143,7 @@ function AddProduct() {
 
         .add-button {
           width: 100%;
-          padding: 12px;
+          padding: 13px;
           border: none;
           border-radius: 5px;
           background-color: #2563eb;
