@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 // new work begin
 import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./component/navbar";
+import Footer from "./component/Footer";
 import Category from "./pages/Category";
 import AddProduct from "./pages/AddProduct";
 import ProductPage from "./pages/Product";
@@ -75,6 +76,7 @@ function App() {
 
 
       </main>
+      <Footer />
     </div>
   );
 }
