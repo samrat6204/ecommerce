@@ -8,6 +8,12 @@ function Category() {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
 
+  // add form state
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [success, setSuccess] = useState("");
+
   const admin = isAdmin();
 
   // ── fetch categories ─────────────────────────────────────
@@ -21,9 +27,44 @@ function Category() {
     }
   }
 
-  useEffect(() => {
-    getCategories();
-  }, []);
+  useEffect(() => { getCategories(); }, []);
+
+  // ── add category ─────────────────────────────────────────
+  async function handleAdd(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setAdding(true);
+
+    try {
+      const res = await fetch(`${API_URL}/categories/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ name, description }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(
+          data.name?.[0] || data.description?.[0] || data.error || "Could not add category."
+        );
+        return;
+      }
+
+      setSuccess(`"${data.category.name}" added successfully!`);
+      setName("");
+      setDescription("");
+      getCategories();
+    } catch {
+      setError("Could not connect to the server.");
+    } finally {
+      setAdding(false);
+    }
+  }
 
   // ── delete category ──────────────────────────────────────
   async function handleDelete(category) {
@@ -33,14 +74,13 @@ function Category() {
     if (!confirmed) return;
 
     setError("");
+    setSuccess("");
     setDeletingId(category.id);
 
     try {
       const res = await fetch(`${API_URL}/categories/${category.id}/`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
 
       const data = await res.json();
@@ -50,8 +90,8 @@ function Category() {
         return;
       }
 
-      // remove from list instantly
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      setSuccess(`"${category.name}" deleted.`);
     } catch {
       setError("Could not connect to the server.");
     } finally {
@@ -64,26 +104,84 @@ function Category() {
       <style>{`
         * { box-sizing: border-box; }
 
-        .category-container {
+        .cat-page {
           max-width: 1200px;
           margin: auto;
           padding: 40px 20px;
           font-family: Arial, sans-serif;
         }
 
-        .list-title {
+        .cat-page-title {
           text-align: center;
           font-size: 32px;
-          margin-bottom: 8px;
+          margin: 0 0 6px;
         }
 
         .admin-note {
           text-align: center;
           font-size: 13px;
           color: #6b7280;
-          margin-bottom: 28px;
+          margin: 0 0 28px;
         }
 
+        /* ── add form ── */
+        .add-form {
+          max-width: 560px;
+          margin: 0 auto 40px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 28px;
+        }
+
+        .add-form h2 {
+          margin: 0 0 20px;
+          font-size: 20px;
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .form-group label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 6px;
+          font-size: 14px;
+        }
+
+        .form-input, .form-textarea {
+          width: 100%;
+          padding: 11px 13px;
+          border: 1px solid #d1d5db;
+          border-radius: 7px;
+          font-size: 15px;
+          font-family: Arial, sans-serif;
+          background: white;
+        }
+
+        .form-textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+
+        .add-btn {
+          width: 100%;
+          padding: 12px;
+          background: #2563eb;
+          color: white;
+          border: none;
+          border-radius: 7px;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .add-btn:hover:not(:disabled) { background: #1d4ed8; }
+        .add-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ── banners ── */
         .error-banner {
           background: #fef2f2;
           border: 1px solid #fecaca;
@@ -97,6 +195,29 @@ function Category() {
           align-items: center;
         }
 
+        .success-banner {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #16a34a;
+          border-radius: 8px;
+          padding: 12px 16px;
+          margin-bottom: 20px;
+          font-size: 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .banner-close {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-weight: 700;
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        /* ── grid ── */
         .category-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -111,7 +232,7 @@ function Category() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.06);
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
 
         .category-card h3 {
@@ -146,14 +267,8 @@ function Category() {
           transition: background 0.2s;
         }
 
-        .delete-btn:hover:not(:disabled) {
-          background: #fee2e2;
-        }
-
-        .delete-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+        .delete-btn:hover:not(:disabled) { background: #fee2e2; }
+        .delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .no-category {
           text-align: center;
@@ -167,32 +282,73 @@ function Category() {
 
         @media (max-width: 600px) {
           .category-grid { grid-template-columns: 1fr; }
-          .list-title { font-size: 26px; }
+          .cat-page-title { font-size: 26px; }
         }
       `}</style>
 
-      <div className="category-container">
+      <div className="cat-page">
 
-        <h1 className="list-title">Category List</h1>
+        <h1 className="cat-page-title">Categories</h1>
 
         {admin && (
           <p className="admin-note">
-            🔑 You are logged in as admin — you can delete categories.
+            🔑 Logged in as admin — you can add and delete categories.
           </p>
         )}
 
-        {/* error banner */}
+        {/* ── error / success banners ── */}
         {error && (
           <div className="error-banner">
             <span>{error}</span>
-            <button
-              onClick={() => setError("")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontWeight: 700, fontSize: 16 }}
-            >
-              ✕
-            </button>
+            <button className="banner-close" onClick={() => setError("")} style={{ color: "#dc2626" }}>✕</button>
           </div>
         )}
+
+        {success && (
+          <div className="success-banner">
+            <span>{success}</span>
+            <button className="banner-close" onClick={() => setSuccess("")} style={{ color: "#16a34a" }}>✕</button>
+          </div>
+        )}
+
+        {/* ── add form — admin only ── */}
+        {admin && (
+          <form className="add-form" onSubmit={handleAdd}>
+            <h2>➕ Add New Category</h2>
+
+            <div className="form-group">
+              <label>Category Name</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Electronics"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Description</label>
+              <textarea
+                className="form-textarea"
+                placeholder="Short description of this category"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="add-btn" disabled={adding}>
+              {adding ? "Adding…" : "Add Category"}
+            </button>
+          </form>
+        )}
+
+        {/* ── category list ── */}
+        <h2 style={{ textAlign: "center", fontSize: 24, marginBottom: 20 }}>
+          Category List
+        </h2>
 
         {categories.length === 0 ? (
           <p className="no-category">No categories found.</p>
@@ -204,7 +360,6 @@ function Category() {
                 <h3>{category.name}</h3>
                 <p>{category.description}</p>
 
-                {/* delete button — admin only */}
                 {admin && (
                   <button
                     className="delete-btn"
