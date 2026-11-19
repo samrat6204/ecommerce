@@ -9,6 +9,7 @@ function AddProduct() {
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [category, setCategory] = useState("");
+  const [image, setImage] = useState(null);
 
   // GET products
   const getProducts = async () => {
@@ -35,19 +36,22 @@ function AddProduct() {
   const addProduct = async (e) => {
     e.preventDefault();
 
+    // Use FormData so the image file is sent correctly
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    formData.append("price", price);
+    formData.append("quantity", quantity);
+    formData.append("category", category);
+    if (image) formData.append("image", image);
+
     const response = await fetch("http://127.0.0.1:8000/products/", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${getToken()}`,
+        // Do NOT set Content-Type — browser sets it automatically with boundary for FormData
       },
-      body: JSON.stringify({
-        name: name,
-        description: description,
-        price: price,
-        quantity: quantity,
-        category: category,
-      }),
+      body: formData,
     });
 
     if (response.ok) {
@@ -58,6 +62,9 @@ function AddProduct() {
       setPrice("");
       setQuantity("");
       setCategory("");
+      setImage(null);
+      // reset the file input visually
+      document.getElementById("image-input").value = "";
 
       getProducts();
     } else {
@@ -291,6 +298,25 @@ function AddProduct() {
             </select>
           </div>
 
+          <div className="form-group">
+            <label>Product Image (optional)</label>
+            <input
+              id="image-input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+              className="form-input"
+              style={{ padding: "8px" }}
+            />
+            {image && (
+              <img
+                src={URL.createObjectURL(image)}
+                alt="Preview"
+                style={{ marginTop: 10, width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 6 }}
+              />
+            )}
+          </div>
+
           <button type="submit" className="add-button">
             Add Product
           </button>
@@ -315,6 +341,13 @@ function AddProduct() {
             {products.map((product) => (
 
               <div key={product.id} className="product-card">
+                {product.image && (
+                  <img
+                    src={`http://127.0.0.1:8000${product.image}`}
+                    alt={product.name}
+                    style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6, marginBottom: 12 }}
+                  />
+                )}
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
                 <p className="product-price">Price: {product.price}</p>
