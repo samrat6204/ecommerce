@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 // task completed
 // updated: 2026-10-05
 // new work begin
+// last updated: 2026-11-19
 import { Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./component/navbar";
 import Footer from "./component/Footer";
