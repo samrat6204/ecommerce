@@ -150,7 +150,7 @@ function OrderSuccess() {
         </div>
 
         <button style={s.primaryBtn} onClick={() => navigate("/products")}>
-          Continue Shopping
+          Continue Shopping.......
         </button>
       </div>
     </main>
@@ -172,14 +172,14 @@ const s = {
     maxWidth: 520,
     background: "#fff",
     borderRadius: 16,
-    padding: 32,
+    padding: 34,
     textAlign: "center",
     boxShadow: "0 15px 40px rgba(0,0,0,0.1)",
   },
   iconWrap: {
     width: 68,
     height: 68,
-    margin: "0 auto 16px",
+    margin: "0 auto 17px",
     borderRadius: "50%",
     background: "#dcfce7",
     color: "#16a34a",
@@ -188,7 +188,7 @@ const s = {
     justifyContent: "center",
   },
   title: { margin: "0 0 6px", fontSize: 28 },
-  orderNo: { margin: "0 0 14px", fontWeight: 700, color: "#2563eb", fontSize: 16 },
+  orderNo: { margin: "0 0 14px", fontWeight: 700, color: "#2563eb", fontSize: 18 },
   note: { margin: "0 0 10px", color: "#4b5563", fontSize: 15, lineHeight: 1.5 },
   good: { margin: "0 0 10px", color: "#16a34a", fontSize: 14 },
   warn: { margin: "0 0 10px", color: "#b45309", fontSize: 14 },

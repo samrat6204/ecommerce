@@ -1,6 +1,8 @@
 /**
  * Saauzi — Root Application Component
  * =====================================
+ * Last updated: 2026-11-21
+ */
  * This is the entry point of the React app.
  * It sets up the page layout (Navbar → page content → Footer)
  * and defines all the URL routes.
