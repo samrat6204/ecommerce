@@ -2,22 +2,22 @@
  * Saauzi — Root Application Component
  * =====================================
  * Last updated: 2026-11-21
- */
+ *
  * This is the entry point of the React app.
  * It sets up the page layout (Navbar → page content → Footer)
  * and defines all the URL routes.
  *
  * Route structure:
- *   /              → redirects to /login
- *   /login         → Login page
- *   /register      → Register page
- *   /products      → Product listing page (all users)
- *   /category      → Category listing page (all users, delete for admin)
- *   /add-product   → Add product form (admin only)
- *   /cart          → Shopping cart page (logged-in users)
- *   /checkout      → Checkout & payment page (logged-in users)
- *   /order-success → Order confirmation page (after placing an order)
- *   /admin/categories → Admin category management (admin only)
+ *   /                  → redirects to /login
+ *   /login             → Login page
+ *   /register          → Register page
+ *   /products          → Product listing page (all users)
+ *   /category          → Category listing page (all users, delete for admin)
+ *   /add-product       → Add product form (admin only)
+ *   /cart              → Shopping cart page (logged-in users)
+ *   /checkout          → Checkout & payment page (logged-in users)
+ *   /order-success     → Order confirmation page (after placing an order)
+ *   /admin/categories  → Admin category management (admin only)
  *
  * Authentication:
  *   - AdminRoute wrapper redirects non-admins to /login

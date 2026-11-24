@@ -130,8 +130,8 @@ function Category() {
           margin: 0 auto 40px;
           background: #f9fafb;
           border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 28px;
+          border-radius: 14px;
+          padding: 30px;
         }
 
         .add-form h2 {
@@ -140,7 +140,7 @@ function Category() {
         }
 
         .form-group {
-          margin-bottom: 16px;
+          margin-bottom: 17px;
         }
 
         .form-group label {

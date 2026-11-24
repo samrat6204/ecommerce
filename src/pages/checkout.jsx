@@ -76,7 +76,7 @@ function Checkout() {
 
       if (!res.ok) {
         clearCartCache();
-        setLoadError("Cart not found. Please refresh.");
+        setLoadError("Cart not found. Please refresh.And try again");
         return;
       }
 

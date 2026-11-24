@@ -65,13 +65,13 @@ function Register() {
 
       
 
-      setMessage("Registration successful. Redirecting to login...");
+      setMessage("Registration successful. Redirecting to login...Please Wait ");
 
       setTimeout(() => {
         navigate("/login");
       }, 1200);
     } catch {
-      setMessage("Could not connect to the server.");
+      setMessage("Could not connect to the server.Please Try Again");
     } finally {
       setLoading(false);
     }
