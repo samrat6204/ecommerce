@@ -22,7 +22,7 @@ function Footer() {
 
         .footer-brand h2 {
           color: #ffffff;
-          font-size: 24px;
+          font-size: 26px;
           margin: 0 0 10px;
         }
 
@@ -35,7 +35,7 @@ function Footer() {
 
         .footer-col h3 {
           color: #ffffff;
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 700;
           margin: 0 0 16px;
           text-transform: uppercase;
