@@ -12,7 +12,7 @@ function Footer() {
         }
 
         .footer-container {
-          max-width: 1200px;
+          max-width: 1300px;
           margin: 0 auto;
           padding: 48px 24px 32px;
           display: grid;
@@ -27,7 +27,7 @@ function Footer() {
         }
 
         .footer-brand p {
-          font-size: 14px;
+          font-size: 16px;
           line-height: 1.7;
           color: #9ca3af;
           margin: 0;
@@ -36,7 +36,7 @@ function Footer() {
         .footer-col h3 {
           color: #ffffff;
           font-size: 16px;
-          font-weight: 700;
+          font-weight: 800;
           margin: 0 0 16px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -76,7 +76,7 @@ function Footer() {
           border-top: 1px solid #1f2937;
           padding: 20px 24px;
           text-align: center;
-          font-size: 13px;
+          font-size: 14px;
           color: #6b7280;
         }
 
@@ -123,7 +123,6 @@ function Footer() {
             <h3>About Us</h3>
             <ul>
               <li><a href="#">Our Story</a></li>
-              <li><a href="#">How It Works</a></li>
               <li><a href="#">Privacy Policy</a></li>
               <li><a href="#">Terms & Conditions</a></li>
             </ul>
