@@ -73,10 +73,10 @@ function Footer() {
         }
 
         .footer-bottom {
-          border-top: 1px solid #1f2937;
-          padding: 20px 24px;
+          border-top: 2px solid #1f2937;
+          padding: 20px 26px;
           text-align: center;
-          font-size: 14px;
+          font-size: 16px;
           color: #6b7280;
         }
 
