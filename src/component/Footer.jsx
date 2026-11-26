@@ -14,7 +14,7 @@ function Footer() {
         .footer-container {
           max-width: 1300px;
           margin: 0 auto;
-          padding: 48px 24px 32px;
+          padding: 48px 26px 32px;
           display: grid;
           grid-template-columns: repeat(4, 1fr);
           gap: 40px;
@@ -80,7 +80,7 @@ function Footer() {
           color: #6b7280;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1000px) {
           .footer-container {
             grid-template-columns: repeat(2, 1fr);
           }

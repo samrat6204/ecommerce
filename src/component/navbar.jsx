@@ -94,8 +94,8 @@ function Navbar() {
         }
 
         .nav-link {
-          padding: 10px 16px;
-          border-radius: 6px;
+          padding: 12px 16px;
+          border-radius: 8px;
           color: #374151;
           text-decoration: none;
           transition: 0.3s;
