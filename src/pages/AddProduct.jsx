@@ -150,7 +150,7 @@ function AddProduct() {
 
         .add-button {
           width: 100%;
-          padding: 13px;
+          padding: 14px;
           border: none;
           border-radius: 5px;
           background-color: #2563eb;
@@ -166,7 +166,7 @@ function AddProduct() {
 
         .list-title {
           text-align: center;
-          font-size: 26px;
+          font-size: 28px;
           margin-bottom: 25px;
         }
 
@@ -178,7 +178,7 @@ function AddProduct() {
 
         .product-card {
           border: 1px solid #ddd;
-          border-radius: 10px;
+          border-radius: 1p2x;
           padding: 20px;
           background-color: white;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
