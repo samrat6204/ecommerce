@@ -22,12 +22,12 @@ function Footer() {
 
         .footer-brand h2 {
           color: #ffffff;
-          font-size: 26px;
+          font-size: 28px;
           margin: 0 0 10px;
         }
 
         .footer-brand p {
-          font-size: 16px;
+          font-size: 18px;
           line-height: 1.7;
           color: #9ca3af;
           margin: 0;
@@ -35,7 +35,7 @@ function Footer() {
 
         .footer-col h3 {
           color: #ffffff;
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 800;
           margin: 0 0 16px;
           text-transform: uppercase;
@@ -54,7 +54,7 @@ function Footer() {
         .footer-col ul li a {
           color: #9ca3af;
           text-decoration: none;
-          font-size: 14px;
+          font-size: 16px;
           transition: color 0.2s;
         }
 
@@ -64,7 +64,7 @@ function Footer() {
 
         .footer-col p {
           color: #9ca3af;
-          font-size: 14px;
+          font-size: 16px;
           line-height: 1.8;
           margin: 0 0 8px;
           display: flex;
