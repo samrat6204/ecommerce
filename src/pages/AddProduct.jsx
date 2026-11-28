@@ -166,14 +166,14 @@ function AddProduct() {
 
         .list-title {
           text-align: center;
-          font-size: 28px;
-          margin-bottom: 25px;
+          font-size: 30px;
+          margin-bottom: 26px;
         }
 
         .product-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
+          gap: 22px;
         }
 
         .product-card {
