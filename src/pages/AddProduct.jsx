@@ -179,7 +179,7 @@ function AddProduct() {
         .product-card {
           border: 1px solid #ddd;
           border-radius: 1p2x;
-          padding: 20px;
+          padding: 22px;
           background-color: white;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
@@ -218,7 +218,7 @@ function AddProduct() {
           }
 
           .main-title {
-            font-size: 26px;
+            font-size: 28px;
           }
         }
       `}</style>
