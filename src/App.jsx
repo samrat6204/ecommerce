@@ -26,8 +26,8 @@
 
 // ─── Page imports ─────────────────────────────────────────────────────────────
 import Login          from "./pages/login";
-import Register       from "./pages/Register";
-import ProductPage    from "./pages/Product";
+import Register       from "./pages/register";
+import ProductPage    from "./pages/product";
 import Category       from "./pages/Category";
 import AddProduct     from "./pages/AddProduct";
 import Cart           from "./pages/Cart";
